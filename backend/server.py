@@ -222,7 +222,8 @@ async def import_trades(file: UploadFile = File(...)):
     """Import trades from CSV file"""
     try:
         contents = await file.read()
-        text = contents.decode('utf-8')
+        # Handle BOM and decode
+        text = contents.decode('utf-8-sig')
         
         # Parse CSV
         csv_reader = csv.DictReader(io.StringIO(text))

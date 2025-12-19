@@ -154,15 +154,22 @@ def suggest_column_mapping(headers: List[str]) -> Dict[str, str]:
         if 'price' in mapping:
             break
     
-    # Quantity detection
+    # Quantity detection (prefer non-exchange quantity)
     quantity_keywords = ['quantity', 'qty', 'amount', 'shares']
     for keyword in quantity_keywords:
         for i, h in enumerate(headers_lower):
-            if keyword in h and 'exchange' not in h:
+            if keyword in h and 'exchange' not in h and 'currency' not in h:
                 mapping['quantity'] = headers[i]
                 break
         if 'quantity' in mapping:
             break
+    
+    # If not found, check for quantity with exchange but prefer without
+    if 'quantity' not in mapping:
+        for i, h in enumerate(headers_lower):
+            if 'quantity' in h:
+                mapping['quantity'] = headers[i]
+                break
     
     # Time detection (optional)
     time_keywords = ['time', 'order time', 'execution time']

@@ -145,7 +145,7 @@ def suggest_column_mapping(headers: List[str]) -> Dict[str, str]:
             break
     
     # Price detection
-    price_keywords = ['price', 'trade price', 'execution price']
+    price_keywords = ['price', 'trade price', 'execution price', 'status']
     for keyword in price_keywords:
         for i, h in enumerate(headers_lower):
             if keyword in h:

@@ -334,12 +334,12 @@ export const ImportDialog = ({ open, onClose, onSuccess }) => {
                   <Label className="text-[#FAFAFA] font-['Inter'] text-sm mb-2 block">
                     Time (Optional)
                   </Label>
-                  <Select value={mapping.time} onValueChange={(val) => setMapping({...mapping, time: val})}>
+                  <Select value={mapping.time || undefined} onValueChange={(val) => setMapping({...mapping, time: val})}>
                     <SelectTrigger className="bg-[#27272A] border-[#3F3F46] text-[#FAFAFA]">
                       <SelectValue placeholder="Select time column" />
                     </SelectTrigger>
                     <SelectContent className="bg-[#27272A] border-[#3F3F46]">
-                      <SelectItem value="" className="text-[#71717A] hover:bg-[#3F3F46]">None</SelectItem>
+                      <SelectItem value="none" className="text-[#71717A] hover:bg-[#3F3F46]">None</SelectItem>
                       {headers.map((h) => (
                         <SelectItem key={h} value={h} className="text-[#FAFAFA] hover:bg-[#3F3F46]">{h}</SelectItem>
                       ))}

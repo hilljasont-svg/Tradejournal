@@ -618,10 +618,11 @@ async def import_with_mapping(
                         'Order Time': order_datetime.strftime('%I:%M:%S %p ET %b-%d-%Y'),
                         'order_datetime': order_datetime,
                         'price': price,
-                        'trade_value': trade_value
+                        'trade_value': trade_value,
+                        'fees': fees
                     }
                     new_trades.append(trade)
-                    logging.info("Trade added: %s @ %s x %s (value: %s)", symbol, price, quantity, trade_value)
+                    logging.info("Trade added: %s @ %s x %s (value: %s, fees: %s)", symbol, price, quantity, trade_value, fees)
                 else:
                     logging.warning("Trade rejected - Symbol: '%s' (valid:%s), Price: %s (>0:%s), Qty: %s (>0:%s)", symbol, bool(symbol), price, price > 0, quantity, quantity > 0)
             except Exception as e:

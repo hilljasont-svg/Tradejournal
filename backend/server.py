@@ -502,6 +502,11 @@ async def import_with_mapping(
                 # Debug logging
                 logging.info(f'Processed row - Symbol: \'{symbol}\', Price: {price}, Quantity: {quantity}, Action: {action}')
                 
+                # Check if options (multiply by 100)
+                is_option = bool(re.search(r'[PC]\d+$', symbol))
+                multiplier = 100 if is_option else 1
+                trade_value = price * quantity * multiplier
+                
                 if symbol and price > 0 and quantity > 0:
                     trade = {
                         'Symbol': symbol,
@@ -510,10 +515,11 @@ async def import_with_mapping(
                         'Amount': int(quantity),
                         'Order Time': order_datetime.strftime('%I:%M:%S %p ET %b-%d-%Y'),
                         'order_datetime': order_datetime,
-                        'price': price
+                        'price': price,
+                        'trade_value': trade_value
                     }
                     new_trades.append(trade)
-                    logging.info("Trade added: %s @ %s x %s", symbol, price, quantity)
+                    logging.info("Trade added: %s @ %s x %s (value: %s)", symbol, price, quantity, trade_value)
                 else:
                     logging.warning("Trade rejected - Symbol: '%s' (valid:%s), Price: %s (>0:%s), Qty: %s (>0:%s)", symbol, bool(symbol), price, price > 0, quantity, quantity > 0)
             except Exception as e:

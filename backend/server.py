@@ -271,7 +271,7 @@ def calculate_hold_time(entry_dt: datetime, exit_dt: datetime) -> str:
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
 def match_trades(raw_trades: List[dict]) -> List[dict]:
-    """Match Buy and Sell trades to create matched trade pairs"""
+    """Match Buy and Sell trades with proper P&L calculation"""
     by_symbol = defaultdict(list)
     for trade in raw_trades:
         symbol = trade.get('Symbol', '').strip()
@@ -283,55 +283,74 @@ def match_trades(raw_trades: List[dict]) -> List[dict]:
     for symbol, trades in by_symbol.items():
         trades.sort(key=lambda t: t.get('order_datetime', datetime.min))
         
-        buy_stack = []
-        sell_stack = []
+        buy_queue = []
         
         for trade in trades:
             action = trade.get('Action', '').upper()
+            trade_value = abs(float(trade.get('trade_value', 0)))
+            quantity = abs(int(trade.get('Amount', 0)))
             
-            if 'BUY' in action:
-                buy_stack.append(trade)
-            elif 'SELL' in action:
-                sell_stack.append(trade)
-        
-        while buy_stack and sell_stack:
-            buy_trade = buy_stack.pop(0)
-            sell_trade = sell_stack.pop(0)
+            if 'BUY' in action or 'OPENING' in action:
+                buy_queue.append({
+                    'datetime': trade.get('order_datetime'),
+                    'price': trade.get('price', 0),
+                    'quantity': quantity,
+                    'remaining_qty': quantity,
+                    'cost': trade_value,
+                    'trade': trade
+                })
             
-            entry_price = buy_trade.get('price', 0)
-            exit_price = sell_trade.get('price', 0)
-            quantity = abs(buy_trade.get('Amount', 0))
-            
-            if entry_price and exit_price and quantity:
-                pnl = (exit_price - entry_price) * quantity
+            elif 'SELL' in action or 'CLOSING' in action:
+                sell_value = trade_value
+                sell_qty = quantity
+                sell_dt = trade.get('order_datetime')
+                sell_price = trade.get('price', 0)
                 
-                if pnl > 5:
-                    result = 'Win'
-                elif pnl < -5:
-                    result = 'Lose'
-                else:
-                    result = 'Scratch'
+                qty_to_match = sell_qty
+                matched_cost = 0
                 
-                entry_dt = buy_trade.get('order_datetime')
-                exit_dt = sell_trade.get('order_datetime')
-                
-                matched_trade = {
-                    'Trade Date': exit_dt.strftime('%Y-%m-%d') if exit_dt else '',
-                    'Symbol': symbol,
-                    'Side': 'Long',
-                    'Entry Action': 'Buy',
-                    'Exit Action': 'Sell',
-                    'Entry Time': entry_dt.strftime('%H:%M:%S') if entry_dt else '00:00:00',
-                    'Exit Time': exit_dt.strftime('%H:%M:%S') if exit_dt else '00:00:00',
-                    'Entry Price': float(entry_price),
-                    'Exit Price': float(exit_price),
-                    'Quantity': int(quantity),
-                    'PnL': round(pnl, 2),
-                    'Result': result,
-                    'Hold Time': calculate_hold_time(entry_dt, exit_dt) if entry_dt and exit_dt else '00:00:00',
-                    'Entry Hour': entry_dt.hour if entry_dt else 0
-                }
-                matched_trades.append(matched_trade)
+                while qty_to_match > 0 and buy_queue:
+                    buy_entry = buy_queue[0]
+                    
+                    if buy_entry['remaining_qty'] <= qty_to_match:
+                        matched_qty = buy_entry['remaining_qty']
+                        matched_cost += (buy_entry['cost'] / buy_entry['quantity']) * matched_qty
+                        qty_to_match -= matched_qty
+                        buy_queue.pop(0)
+                    else:
+                        matched_qty = qty_to_match
+                        matched_cost += (buy_entry['cost'] / buy_entry['quantity']) * matched_qty
+                        buy_entry['remaining_qty'] -= matched_qty
+                        qty_to_match = 0
+                    
+                    pnl = sell_value * (matched_qty / sell_qty) - matched_cost
+                    
+                    if pnl > 5:
+                        result = 'Win'
+                    elif pnl < -5:
+                        result = 'Lose'
+                    else:
+                        result = 'Scratch'
+                    
+                    entry_dt = buy_entry['datetime']
+                    
+                    matched_trade = {
+                        'Trade Date': sell_dt.strftime('%Y-%m-%d') if sell_dt else '',
+                        'Symbol': symbol,
+                        'Side': 'Long',
+                        'Entry Action': 'Buy',
+                        'Exit Action': 'Sell',
+                        'Entry Time': entry_dt.strftime('%H:%M:%S') if entry_dt else '00:00:00',
+                        'Exit Time': sell_dt.strftime('%H:%M:%S') if sell_dt else '00:00:00',
+                        'Entry Price': float(buy_entry['price']),
+                        'Exit Price': float(sell_price),
+                        'Quantity': int(matched_qty),
+                        'PnL': round(pnl, 2),
+                        'Result': result,
+                        'Hold Time': calculate_hold_time(entry_dt, sell_dt) if entry_dt and sell_dt else '00:00:00',
+                        'Entry Hour': entry_dt.hour if entry_dt else 0
+                    }
+                    matched_trades.append(matched_trade)
     
     return matched_trades
 

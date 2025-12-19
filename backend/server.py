@@ -329,7 +329,7 @@ def match_trades(raw_trades: List[dict]) -> List[dict]:
                     
                     pnl = sell_value * (matched_qty / sell_qty) - this_match_cost
                     
-                    logging.info(f"Match: {symbol} qty={matched_qty}, sell_val={sell_value}, sell_qty={sell_qty}, cost={matched_cost}, pnl={pnl}")
+                    logging.info(f"Match: {symbol} qty={matched_qty}, sell_val={sell_value}, sell_qty={sell_qty}, cost={this_match_cost}, pnl={pnl}")
                     
                     if pnl > 5:
                         result = 'Win'

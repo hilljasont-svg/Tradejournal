@@ -411,6 +411,17 @@ def match_trades(raw_trades: List[dict]) -> List[dict]:
                         'Entry Hour': entry_dt.hour if entry_dt else 0
                     }
                     matched_trades.append(matched_trade)
+                
+                # Add unmatched sell quantity to sell queue (opening short position)
+                if qty_to_match > 0:
+                    sell_queue.append({
+                        'datetime': sell_dt,
+                        'price': sell_price,
+                        'quantity': qty_to_match,
+                        'remaining_qty': qty_to_match,
+                        'revenue': sell_value * (qty_to_match / sell_qty),
+                        'trade': trade
+                    })
     
     return matched_trades
 

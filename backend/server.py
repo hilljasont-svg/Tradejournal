@@ -438,7 +438,10 @@ async def import_with_mapping(
                 time_col = column_mapping.get('time')
                 date_time_combined = column_mapping.get('date_time_combined', False)
                 
+                logging.info(f"Column mapping - date:{date_col}, symbol:{symbol_col}, price:{price_col}, qty:{quantity_col}")
+                
                 if not all([date_col, symbol_col, price_col, quantity_col]):
+                    logging.warning(f"Missing required columns - skipping row")
                     continue
                 
                 # Parse date/time

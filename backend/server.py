@@ -289,6 +289,7 @@ def match_trades(raw_trades: List[dict]) -> List[dict]:
         ))
         
         buy_queue = []
+        sell_queue = []
         
         for trade in trades:
             action = trade.get('Action', '').upper()
@@ -296,14 +297,66 @@ def match_trades(raw_trades: List[dict]) -> List[dict]:
             quantity = abs(int(trade.get('Amount', 0)))
             
             if 'BUY' in action or 'OPENING' in action:
-                buy_queue.append({
-                    'datetime': trade.get('order_datetime'),
-                    'price': trade.get('price', 0),
-                    'quantity': quantity,
-                    'remaining_qty': quantity,
-                    'cost': trade_value,
-                    'trade': trade
-                })
+                # Check if there are unmatched sells (short position)
+                if sell_queue:
+                    # This buy is closing a short position
+                    while quantity > 0 and sell_queue:
+                        sell_entry = sell_queue[0]
+                        
+                        if sell_entry['remaining_qty'] <= quantity:
+                            matched_qty = sell_entry['remaining_qty']
+                            this_match_cost = trade_value * (matched_qty / trade['Amount'])
+                            this_match_revenue = sell_entry['revenue']
+                            quantity -= matched_qty
+                            sell_queue.pop(0)
+                        else:
+                            matched_qty = quantity
+                            this_match_cost = trade_value * (matched_qty / trade['Amount'])
+                            this_match_revenue = (sell_entry['revenue'] / sell_entry['quantity']) * matched_qty
+                            sell_entry['remaining_qty'] -= matched_qty
+                            quantity = 0
+                        
+                        # For shorts: P&L = revenue - cost (opposite of long)
+                        pnl = this_match_revenue - this_match_cost
+                        
+                        if pnl > 5:
+                            result = 'Win'
+                        elif pnl < -5:
+                            result = 'Lose'
+                        else:
+                            result = 'Scratch'
+                        
+                        entry_dt = sell_entry['datetime']
+                        exit_dt = trade.get('order_datetime')
+                        
+                        matched_trade = {
+                            'Trade Date': exit_dt.strftime('%Y-%m-%d') if exit_dt else '',
+                            'Symbol': symbol,
+                            'Side': 'Short',
+                            'Entry Action': 'Sell',
+                            'Exit Action': 'Buy',
+                            'Entry Time': entry_dt.strftime('%H:%M:%S') if entry_dt else '00:00:00',
+                            'Exit Time': exit_dt.strftime('%H:%M:%S') if exit_dt else '00:00:00',
+                            'Entry Price': float(sell_entry['price']),
+                            'Exit Price': float(trade.get('price', 0)),
+                            'Quantity': int(matched_qty),
+                            'PnL': round(pnl, 2),
+                            'Result': result,
+                            'Hold Time': calculate_hold_time(entry_dt, exit_dt) if entry_dt and exit_dt else '00:00:00',
+                            'Entry Hour': entry_dt.hour if entry_dt else 0
+                        }
+                        matched_trades.append(matched_trade)
+                
+                # Add remaining to buy queue if any
+                if quantity > 0:
+                    buy_queue.append({
+                        'datetime': trade.get('order_datetime'),
+                        'price': trade.get('price', 0),
+                        'quantity': quantity,
+                        'remaining_qty': quantity,
+                        'cost': trade_value * (quantity / trade['Amount']),
+                        'trade': trade
+                    })
             
             elif 'SELL' in action or 'CLOSING' in action:
                 sell_value = trade_value

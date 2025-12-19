@@ -428,7 +428,7 @@ async def import_with_mapping(
         for row in csv_reader:
             row_count += 1
             try:
-                logging.info(f\"Processing row {row_count}\")
+                logging.info(f"Processing row {row_count}")
                 # Extract mapped columns
                 date_col = column_mapping.get('date')
                 symbol_col = column_mapping.get('symbol')

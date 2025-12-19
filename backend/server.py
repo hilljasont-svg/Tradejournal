@@ -731,8 +731,20 @@ async def get_trades(start_date: str = None, end_date: str = None):
     return result
 
 @api_router.get("/dashboard-metrics", response_model=DashboardMetrics)
-async def get_dashboard_metrics():
+async def get_dashboard_metrics(start_date: str = None, end_date: str = None):
     trades = load_matched_trades()
+    
+    # Filter by date range
+    if start_date or end_date:
+        filtered = []
+        for trade in trades:
+            trade_date = trade.get('Trade Date', '')
+            if start_date and trade_date < start_date:
+                continue
+            if end_date and trade_date > end_date:
+                continue
+            filtered.append(trade)
+        trades = filtered
     
     if not trades:
         return DashboardMetrics(

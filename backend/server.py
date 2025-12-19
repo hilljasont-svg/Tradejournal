@@ -273,15 +273,20 @@ def calculate_hold_time(entry_dt: datetime, exit_dt: datetime) -> str:
 def match_trades(raw_trades: List[dict]) -> List[dict]:
     """Match Buy and Sell trades with proper P&L calculation"""
     by_symbol = defaultdict(list)
-    for trade in raw_trades:
+    for idx, trade in enumerate(raw_trades):
         symbol = trade.get('Symbol', '').strip()
         if symbol:
+            trade['_import_order'] = idx  # Preserve original order for ties
             by_symbol[symbol].append(trade)
     
     matched_trades = []
     
     for symbol, trades in by_symbol.items():
-        trades.sort(key=lambda t: t.get('order_datetime', datetime.min))
+        # Sort by datetime, then by import order if datetime is same
+        trades.sort(key=lambda t: (
+            t.get('order_datetime', datetime.min),
+            t.get('_import_order', 0)
+        ))
         
         buy_queue = []
         

@@ -404,6 +404,11 @@ def match_trades(raw_trades: List[dict]) -> List[dict]:
                     
                     entry_dt = buy_entry['datetime']
                     
+                    # Calculate fees for this portion
+                    entry_fees = buy_entry['trade'].get('fees', 0) * (matched_qty / buy_entry['quantity'])
+                    exit_fees = trade.get('fees', 0) * (matched_qty / sell_qty)
+                    total_fees = entry_fees + exit_fees
+                    
                     matched_trade = {
                         'Trade Date': sell_dt.strftime('%Y-%m-%d') if sell_dt else '',
                         'Symbol': symbol,
@@ -416,6 +421,7 @@ def match_trades(raw_trades: List[dict]) -> List[dict]:
                         'Exit Price': float(sell_price),
                         'Quantity': int(matched_qty),
                         'PnL': round(pnl, 2),
+                        'Fees': round(total_fees, 2),
                         'Result': result,
                         'Hold Time': calculate_hold_time(entry_dt, sell_dt) if entry_dt and sell_dt else '00:00:00',
                         'Entry Hour': entry_dt.hour if entry_dt else 0

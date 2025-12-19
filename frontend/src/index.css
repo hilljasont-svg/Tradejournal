@@ -4,6 +4,35 @@
 @tailwind components;
 @tailwind utilities;
 
+.react-datepicker {
+    background-color: #27272A !important;
+    border: 1px solid #3F3F46 !important;
+    color: #FAFAFA !important;
+}
+
+.react-datepicker__header {
+    background-color: #18181B !important;
+    border-bottom: 1px solid #3F3F46 !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker__day-name {
+    color: #FAFAFA !important;
+}
+
+.react-datepicker__day {
+    color: #FAFAFA !important;
+}
+
+.react-datepicker__day:hover {
+    background-color: #3F3F46 !important;
+}
+
+.react-datepicker__day--selected {
+    background-color: #FAFAFA !important;
+    color: #18181B !important;
+}
+
 body {
     margin: 0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;

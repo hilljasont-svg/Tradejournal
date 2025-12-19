@@ -42,6 +42,7 @@ export const ImportDialog = ({ open, onClose, onSuccess }) => {
     price: '',
     quantity: '',
     time: '',
+    fees: '',
   });
   const [dateTimeCombined, setDateTimeCombined] = useState(false);
 

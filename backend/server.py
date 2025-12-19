@@ -435,10 +435,11 @@ async def import_with_mapping(
                 quantity = abs(float(quantity_raw)) if quantity_raw and quantity_raw != '' else 0
                 
                 # Determine action
-                if action_col:
-                    action = determine_action(row.get(action_col, ''), float(quantity_raw) if quantity_raw else 0)
+                quantity_for_action = float(quantity_raw) if quantity_raw and quantity_raw != '' else 0
+                if action_col and action_col != 'none':
+                    action = determine_action(row.get(action_col, ''), quantity_for_action)
                 else:
-                    action = 'Buy' if float(quantity_raw) > 0 else 'Sell'
+                    action = 'Buy' if quantity_for_action >= 0 else 'Sell'
                 
                 if symbol and price > 0 and quantity > 0:
                     trade = {

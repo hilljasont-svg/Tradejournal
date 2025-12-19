@@ -412,7 +412,9 @@ async def import_with_mapping(
     """Import trades with custom column mapping"""
     try:
         import json
+        logging.info(f"Received mapping param: {mapping}")
         column_mapping = json.loads(mapping) if mapping else {}
+        logging.info(f"Parsed column_mapping: {column_mapping}")
         
         contents = await file.read()
         text = contents.decode('utf-8-sig')

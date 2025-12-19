@@ -78,6 +78,7 @@ export const ImportDialog = ({ open, onClose, onSuccess }) => {
         price: response.data.suggested_mapping.price || '',
         quantity: response.data.suggested_mapping.quantity || '',
         time: response.data.suggested_mapping.time || '',
+        fees: response.data.suggested_mapping.fees || '',
       });
       
       setStep(2);

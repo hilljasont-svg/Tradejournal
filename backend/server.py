@@ -73,6 +73,27 @@ class CalendarDay(BaseModel):
     pnl: float
     trade_count: int
 
+class TimeAnalysis(BaseModel):
+    hour: int
+    trade_count: int
+    total_pnl: float
+    avg_pnl: float
+    win_count: int
+    loss_count: int
+    win_rate: float
+
+class SymbolPerformance(BaseModel):
+    symbol: str
+    trade_count: int
+    total_pnl: float
+    avg_pnl: float
+    win_rate: float
+
+class CumulativePnL(BaseModel):
+    date: str
+    pnl: float
+    cumulative_pnl: float
+
 def parse_fidelity_time(time_str: str) -> Optional[datetime]:
     """Parse Fidelity time format: '3:31:36 PM ET Dec-18-2025'"""
     try:
@@ -97,17 +118,8 @@ def parse_price_from_status(status: str) -> Optional[float]:
         pass
     return None
 
-def calculate_hold_time(entry_dt, exit_dt) -> str:
+def calculate_hold_time(entry_dt: datetime, exit_dt: datetime) -> str:
     """Calculate hold time in HH:MM:SS format"""
-    # Handle string datetime conversion
-    if isinstance(entry_dt, str):
-        entry_dt = datetime.fromisoformat(entry_dt)
-    if isinstance(exit_dt, str):
-        exit_dt = datetime.fromisoformat(exit_dt)
-    
-    if not isinstance(entry_dt, datetime) or not isinstance(exit_dt, datetime):
-        return "00:00:00"
-    
     diff = exit_dt - entry_dt
     total_seconds = int(diff.total_seconds())
     hours = total_seconds // 3600
@@ -177,7 +189,8 @@ def match_trades(raw_trades: List[dict]) -> List[dict]:
                     'Quantity': quantity,
                     'PnL': round(pnl, 2),
                     'Result': result,
-                    'Hold Time': calculate_hold_time(entry_dt, exit_dt) if entry_dt and exit_dt else ''
+                    'Hold Time': calculate_hold_time(entry_dt, exit_dt) if entry_dt and exit_dt else '',
+                    'Entry Hour': entry_dt.hour if entry_dt else None
                 }
                 matched_trades.append(matched_trade)
     
@@ -190,28 +203,7 @@ def load_raw_imports() -> List[dict]:
     
     with open(RAW_IMPORTS_FILE, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
-        trades = list(reader)
-        
-        # Convert string datetime back to datetime objects
-        for trade in trades:
-            if 'order_datetime' in trade and isinstance(trade['order_datetime'], str):
-                try:
-                    trade['order_datetime'] = datetime.fromisoformat(trade['order_datetime'])
-                except:
-                    trade['order_datetime'] = None
-            # Convert price and amount to proper types
-            if 'price' in trade:
-                try:
-                    trade['price'] = float(trade['price'])
-                except:
-                    trade['price'] = 0.0
-            if 'Amount' in trade:
-                try:
-                    trade['Amount'] = int(trade['Amount'])
-                except:
-                    trade['Amount'] = 0
-        
-        return trades
+        return list(reader)
 
 def save_raw_imports(trades: List[dict]):
     """Save raw imports to CSV"""
@@ -240,7 +232,7 @@ def save_matched_trades(trades: List[dict]):
     
     fieldnames = ['Trade Date', 'Symbol', 'Side', 'Entry Action', 'Exit Action',
                  'Entry Time', 'Exit Time', 'Entry Price', 'Exit Price', 'Quantity',
-                 'PnL', 'Result', 'Hold Time']
+                 'PnL', 'Result', 'Hold Time', 'Entry Hour']
     
     with open(TRADES_FILE, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -310,14 +302,7 @@ async def import_trades(file: UploadFile = File(...)):
         # Re-parse for matching
         for trade in all_trades:
             if isinstance(trade.get('order_datetime'), str):
-                try:
-                    trade['order_datetime'] = datetime.fromisoformat(trade['order_datetime'])
-                except:
-                    # If parsing fails, try to parse as original format
-                    try:
-                        trade['order_datetime'] = parse_fidelity_time(trade.get('Order Time', ''))
-                    except:
-                        trade['order_datetime'] = None
+                trade['order_datetime'] = datetime.fromisoformat(trade['order_datetime'])
         
         # Match all trades
         matched = match_trades(all_trades)
@@ -487,6 +472,107 @@ async def get_calendar_data():
         )
         for date, data in daily_data.items()
     ]
+    
+    return result
+
+@api_router.get("/time-analysis", response_model=List[TimeAnalysis])
+async def get_time_analysis():
+    """Analyze trading performance by hour of day"""
+    trades = load_matched_trades()
+    
+    hourly_data = defaultdict(lambda: {'trades': [], 'wins': 0, 'losses': 0})
+    
+    for trade in trades:
+        entry_time = trade.get('Entry Time', '')
+        if entry_time:
+            try:
+                hour = int(entry_time.split(':')[0])
+                pnl = float(trade.get('PnL', 0))
+                hourly_data[hour]['trades'].append(pnl)
+                if trade.get('Result') == 'Win':
+                    hourly_data[hour]['wins'] += 1
+                elif trade.get('Result') == 'Lose':
+                    hourly_data[hour]['losses'] += 1
+            except:
+                pass
+    
+    result = []
+    for hour in range(24):
+        if hour in hourly_data:
+            data = hourly_data[hour]
+            trade_count = len(data['trades'])
+            total_pnl = sum(data['trades'])
+            avg_pnl = total_pnl / trade_count if trade_count > 0 else 0
+            win_rate = data['wins'] / trade_count if trade_count > 0 else 0
+            
+            result.append(TimeAnalysis(
+                hour=hour,
+                trade_count=trade_count,
+                total_pnl=round(total_pnl, 2),
+                avg_pnl=round(avg_pnl, 2),
+                win_count=data['wins'],
+                loss_count=data['losses'],
+                win_rate=round(win_rate, 4)
+            ))
+    
+    return result
+
+@api_router.get("/symbol-performance", response_model=List[SymbolPerformance])
+async def get_symbol_performance():
+    """Analyze performance by symbol"""
+    trades = load_matched_trades()
+    
+    symbol_data = defaultdict(lambda: {'pnls': [], 'wins': 0})
+    
+    for trade in trades:
+        symbol = trade.get('Symbol', '')
+        if symbol:
+            pnl = float(trade.get('PnL', 0))
+            symbol_data[symbol]['pnls'].append(pnl)
+            if trade.get('Result') == 'Win':
+                symbol_data[symbol]['wins'] += 1
+    
+    result = []
+    for symbol, data in symbol_data.items():
+        trade_count = len(data['pnls'])
+        total_pnl = sum(data['pnls'])
+        avg_pnl = total_pnl / trade_count if trade_count > 0 else 0
+        win_rate = data['wins'] / trade_count if trade_count > 0 else 0
+        
+        result.append(SymbolPerformance(
+            symbol=symbol,
+            trade_count=trade_count,
+            total_pnl=round(total_pnl, 2),
+            avg_pnl=round(avg_pnl, 2),
+            win_rate=round(win_rate, 4)
+        ))
+    
+    # Sort by total P&L descending
+    result.sort(key=lambda x: x.total_pnl, reverse=True)
+    
+    return result
+
+@api_router.get("/cumulative-pnl", response_model=List[CumulativePnL])
+async def get_cumulative_pnl():
+    """Get cumulative P&L over time"""
+    trades = load_matched_trades()
+    
+    # Sort by date and time
+    sorted_trades = sorted(trades, key=lambda t: f"{t.get('Trade Date', '')} {t.get('Exit Time', '')}")
+    
+    cumulative = 0
+    result = []
+    
+    for trade in sorted_trades:
+        date = trade.get('Trade Date', '')
+        pnl = float(trade.get('PnL', 0))
+        cumulative += pnl
+        
+        result.append(CumulativePnL(
+            date=f"{date} {trade.get('Exit Time', '')}",
+            pnl=round(pnl, 2),
+            cumulative_pnl=round(cumulative, 2)
+        ))
     
     return result
 

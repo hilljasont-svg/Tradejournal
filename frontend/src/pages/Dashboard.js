@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Upload, TrendingUp, TrendingDown, Calendar as CalendarIcon } from 'lucide-react';
+import { Upload, TrendingUp, TrendingDown, Calendar as CalendarIcon, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import MetricsGrid from '../components/MetricsGrid';
 import CalendarView from '../components/CalendarView';
 import TradeList from '../components/TradeList';
+import ReportsView from '../components/ReportsView';
 import ImportDialog from '../components/ImportDialog';
 import { formatCurrency } from '../utils/formatters';
 import { Toaster, toast } from 'sonner';
@@ -19,7 +20,7 @@ export default function Dashboard() {
   const [calendarData, setCalendarData] = useState([]);
   const [showImport, setShowImport] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState('dashboard'); // dashboard, calendar, trades
+  const [view, setView] = useState('dashboard'); // dashboard, calendar, trades, reports
 
   const fetchData = async () => {
     try {
@@ -98,6 +99,18 @@ export default function Dashboard() {
             Dashboard
           </button>
           <button
+            onClick={() => setView('reports')}
+            className={`px-4 py-2 font-['JetBrains_Mono'] text-sm font-medium transition-colors ${
+              view === 'reports'
+                ? 'text-[#FAFAFA] border-b-2 border-[#FAFAFA]'
+                : 'text-[#A1A1AA] hover:text-[#FAFAFA]'
+            }`}
+            data-testid="tab-reports"
+          >
+            <BarChart3 className="inline mr-2 h-4 w-4" />
+            Reports
+          </button>
+          <button
             onClick={() => setView('calendar')}
             className={`px-4 py-2 font-['JetBrains_Mono'] text-sm font-medium transition-colors ${
               view === 'calendar'
@@ -172,6 +185,7 @@ export default function Dashboard() {
 
         {/* Main Content */}
         {view === 'dashboard' && metrics && <MetricsGrid metrics={metrics} />}
+        {view === 'reports' && <ReportsView />}
         {view === 'calendar' && <CalendarView calendarData={calendarData} />}
         {view === 'trades' && <TradeList trades={trades} />}
       </div>

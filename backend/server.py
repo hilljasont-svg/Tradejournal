@@ -728,6 +728,8 @@ async def get_dashboard_metrics():
         )
     
     total_pnl = sum(float(t.get('PnL', 0)) for t in trades)
+    total_fees = sum(float(t.get('Fees', 0)) for t in trades)
+    net_pnl = total_pnl - total_fees
     total_trades = len(trades)
     
     winning = [t for t in trades if t.get('Result') == 'Win']

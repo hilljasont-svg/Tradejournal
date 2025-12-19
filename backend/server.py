@@ -429,9 +429,10 @@ async def import_with_mapping(
                 
                 # Extract and clean data
                 symbol = extract_symbol(row.get(symbol_col, ''))
-                price = float(row.get(price_col, 0))
-                quantity_raw = row.get(quantity_col, '0')
-                quantity = abs(float(str(quantity_raw).replace(',', '')))
+                price_raw = str(row.get(price_col, '0')).replace(',', '').replace('$', '').strip()
+                price = float(price_raw) if price_raw else 0
+                quantity_raw = str(row.get(quantity_col, '0')).replace(',', '').strip()
+                quantity = abs(float(quantity_raw)) if quantity_raw and quantity_raw != '' else 0
                 
                 # Determine action
                 if action_col:

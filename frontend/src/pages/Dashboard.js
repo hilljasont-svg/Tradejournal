@@ -170,15 +170,32 @@ export default function Dashboard() {
             </Card>
 
             <Card className="bg-[#18181B] border-[#27272A] p-6 rounded-sm">
-              <p className="text-[#A1A1AA] text-sm mb-1 font-['Inter']">Avg Trade P&L</p>
-              <p
-                className={`text-3xl font-bold font-['JetBrains_Mono'] ${
-                  metrics.avg_trade_pnl >= 0 ? 'text-[#10B981]' : 'text-[#EF4444]'
-                }`}
-                data-testid="avg-trade-pnl"
-              >
-                {formatCurrency(metrics.avg_trade_pnl)}
+              <p className="text-[#A1A1AA] text-sm mb-1 font-['Inter']">Total Fees</p>
+              <p className="text-3xl font-bold font-['JetBrains_Mono'] text-[#EF4444]" data-testid="total-fees">
+                -{formatCurrency(metrics.total_fees)}
               </p>
+            </Card>
+
+            <Card className="bg-[#18181B] border-[#27272A] p-6 rounded-sm">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[#A1A1AA] text-sm mb-1 font-['Inter']">Net P&L</p>
+                  <p
+                    className={`text-3xl font-bold font-['JetBrains_Mono'] ${
+                      metrics.net_pnl >= 0 ? 'text-[#10B981]' : 'text-[#EF4444]'
+                    }`}
+                    data-testid="net-pnl"
+                  >
+                    {formatCurrency(metrics.net_pnl)}
+                  </p>
+                  <p className="text-[#71717A] text-xs mt-2 font-['Inter']">After fees & commissions</p>
+                </div>
+                {metrics.net_pnl >= 0 ? (
+                  <TrendingUp className="h-8 w-8 text-[#10B981]" />
+                ) : (
+                  <TrendingDown className="h-8 w-8 text-[#EF4444]" />
+                )}
+              </div>
             </Card>
           </div>
         )}

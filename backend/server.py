@@ -374,6 +374,10 @@ async def preview_csv(file: UploadFile = File(...)):
         contents = await file.read()
         text = contents.decode('utf-8-sig')
         
+        # Remove empty lines
+        lines = [line for line in text.split('\n') if line.strip()]
+        text = '\n'.join(lines)
+        
         csv_reader = csv.DictReader(io.StringIO(text))
         headers = csv_reader.fieldnames
         

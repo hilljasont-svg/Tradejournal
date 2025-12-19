@@ -271,7 +271,7 @@ async def import_trades(file: UploadFile = File(...)):
         
         # Prepare for CSV storage (remove datetime objects)
         for trade in all_trades:
-            if 'order_datetime' in trade:
+            if 'order_datetime' in trade and not isinstance(trade['order_datetime'], str):
                 trade['order_datetime'] = trade['order_datetime'].isoformat()
         
         save_raw_imports(all_trades)

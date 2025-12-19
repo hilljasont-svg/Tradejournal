@@ -312,23 +312,22 @@ def match_trades(raw_trades: List[dict]) -> List[dict]:
                 sell_price = trade.get('price', 0)
                 
                 qty_to_match = sell_qty
-                matched_cost = 0
                 
                 while qty_to_match > 0 and buy_queue:
                     buy_entry = buy_queue[0]
                     
                     if buy_entry['remaining_qty'] <= qty_to_match:
                         matched_qty = buy_entry['remaining_qty']
-                        matched_cost += (buy_entry['cost'] / buy_entry['quantity']) * matched_qty
+                        this_match_cost = (buy_entry['cost'] / buy_entry['quantity']) * matched_qty
                         qty_to_match -= matched_qty
                         buy_queue.pop(0)
                     else:
                         matched_qty = qty_to_match
-                        matched_cost += (buy_entry['cost'] / buy_entry['quantity']) * matched_qty
+                        this_match_cost = (buy_entry['cost'] / buy_entry['quantity']) * matched_qty
                         buy_entry['remaining_qty'] -= matched_qty
                         qty_to_match = 0
                     
-                    pnl = sell_value * (matched_qty / sell_qty) - matched_cost
+                    pnl = sell_value * (matched_qty / sell_qty) - this_match_cost
                     
                     logging.info(f"Match: {symbol} qty={matched_qty}, sell_val={sell_value}, sell_qty={sell_qty}, cost={matched_cost}, pnl={pnl}")
                     

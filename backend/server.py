@@ -598,6 +598,15 @@ async def import_with_mapping(
                 multiplier = 100 if is_option else 1
                 trade_value = price * quantity * multiplier
                 
+                # Extract fees if available
+                fees_col = column_mapping.get('fees')
+                fees = 0
+                if fees_col:
+                    try:
+                        fees = abs(float(row.get(fees_col, 0)))
+                    except:
+                        fees = 0
+                
                 logging.info(f"Symbol: {symbol}, is_option: {is_option}, multiplier: {multiplier}")
                 
                 if symbol and price > 0 and quantity > 0:

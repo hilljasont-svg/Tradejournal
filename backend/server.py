@@ -489,9 +489,9 @@ async def import_with_mapping(
                         'price': price
                     }
                     new_trades.append(trade)
-                    logging.info(f"Trade added: {symbol} @ {price} x {quantity}")
+                    logging.info("Trade added: %s @ %s x %s", symbol, price, quantity)
                 else:
-                    logging.warning(f"Trade rejected - Symbol: '{symbol}' (valid:{bool(symbol)}), Price: {price} (>0:{price > 0}), Qty: {quantity} (>0:{quantity > 0})")
+                    logging.warning("Trade rejected - Symbol: '%s' (valid:%s), Price: %s (>0:%s), Qty: %s (>0:%s)", symbol, bool(symbol), price, price > 0, quantity, quantity > 0)
             except Exception as e:
                 logging.error(f"Error processing row: {e}")
                 continue

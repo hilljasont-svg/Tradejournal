@@ -716,7 +716,7 @@ async def get_dashboard_metrics():
     
     if not trades:
         return DashboardMetrics(
-            total_pnl=0, avg_daily_pnl=0, avg_trade_pnl=0,
+            total_pnl=0, total_fees=0, net_pnl=0, avg_daily_pnl=0, avg_trade_pnl=0,
             total_trades=0, winning_trades=0, losing_trades=0, scratch_trades=0,
             win_rate=0, loss_rate=0, scratch_rate=0,
             avg_winning_trade=0, avg_losing_trade=0,

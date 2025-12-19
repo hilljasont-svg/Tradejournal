@@ -350,6 +350,24 @@ export const ImportDialog = ({ open, onClose, onSuccess }) => {
                   </Select>
                 </div>
 
+                {/* Fees (Optional) */}
+                <div>
+                  <Label className="text-[#FAFAFA] font-['Inter'] text-sm mb-2 block">
+                    Fees/Commission (Optional)
+                  </Label>
+                  <Select value={mapping.fees || undefined} onValueChange={(val) => setMapping({...mapping, fees: val})}>
+                    <SelectTrigger className="bg-[#27272A] border-[#3F3F46] text-[#FAFAFA]">
+                      <SelectValue placeholder="Select fees column" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#27272A] border-[#3F3F46]">
+                      <SelectItem value="none" className="text-[#71717A] hover:bg-[#3F3F46]">None</SelectItem>
+                      {headers.map((h) => (
+                        <SelectItem key={h} value={h} className="text-[#FAFAFA] hover:bg-[#3F3F46]">{h}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Date/Time Combined Checkbox */}
                 <div className="flex items-center space-x-2 pt-2">
                   <Checkbox

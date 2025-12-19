@@ -366,6 +366,7 @@ def match_trades(raw_trades: List[dict]) -> List[dict]:
                 
                 qty_to_match = sell_qty
                 
+                # Match with existing buy queue (closing long positions)
                 while qty_to_match > 0 and buy_queue:
                     buy_entry = buy_queue[0]
                     

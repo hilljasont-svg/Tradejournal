@@ -64,6 +64,8 @@ class MatchedTrade(BaseModel):
 
 class DashboardMetrics(BaseModel):
     total_pnl: float
+    total_fees: float
+    net_pnl: float
     avg_daily_pnl: float
     avg_trade_pnl: float
     total_trades: int

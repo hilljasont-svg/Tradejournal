@@ -476,7 +476,7 @@ async def import_with_mapping(
                     action = 'Buy' if quantity_val >= 0 else 'Sell'
                 
                 # Debug logging
-                logging.info(f"Processed row - Symbol: '{symbol}', Price: {price}, Quantity: {quantity}, Action: {action}")
+                logging.info(f'Processed row - Symbol: \'{symbol}\', Price: {price}, Quantity: {quantity}, Action: {action}')
                 
                 if symbol and price > 0 and quantity > 0:
                     trade = {

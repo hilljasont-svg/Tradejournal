@@ -190,7 +190,28 @@ def load_raw_imports() -> List[dict]:
     
     with open(RAW_IMPORTS_FILE, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
-        return list(reader)
+        trades = list(reader)
+        
+        # Convert string datetime back to datetime objects
+        for trade in trades:
+            if 'order_datetime' in trade and isinstance(trade['order_datetime'], str):
+                try:
+                    trade['order_datetime'] = datetime.fromisoformat(trade['order_datetime'])
+                except:
+                    trade['order_datetime'] = None
+            # Convert price and amount to proper types
+            if 'price' in trade:
+                try:
+                    trade['price'] = float(trade['price'])
+                except:
+                    trade['price'] = 0.0
+            if 'Amount' in trade:
+                try:
+                    trade['Amount'] = int(trade['Amount'])
+                except:
+                    trade['Amount'] = 0
+        
+        return trades
 
 def save_raw_imports(trades: List[dict]):
     """Save raw imports to CSV"""

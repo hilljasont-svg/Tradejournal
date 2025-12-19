@@ -455,16 +455,22 @@ async def import_with_mapping(
                 # Extract and clean data
                 symbol = extract_symbol(row.get(symbol_col, ''))
                 price_raw = str(row.get(price_col, '0')).replace(',', '').replace('$', '').strip()
-                price = float(price_raw) if price_raw else 0
+                price = float(price_raw) if price_raw and price_raw not in ['', '0'] else 0
+                
                 quantity_raw = str(row.get(quantity_col, '0')).replace(',', '').strip()
-                quantity = abs(float(quantity_raw)) if quantity_raw and quantity_raw != '' else 0
+                # Handle empty or invalid quantity
+                try:
+                    quantity_val = float(quantity_raw) if quantity_raw and quantity_raw not in ['', '0'] else 0
+                    quantity = abs(quantity_val)
+                except (ValueError, TypeError):
+                    quantity = 0
+                    quantity_val = 0
                 
                 # Determine action
-                quantity_for_action = float(quantity_raw) if quantity_raw and quantity_raw != '' else 0
                 if action_col and action_col != 'none':
-                    action = determine_action(row.get(action_col, ''), quantity_for_action)
+                    action = determine_action(row.get(action_col, ''), quantity_val)
                 else:
-                    action = 'Buy' if quantity_for_action >= 0 else 'Sell'
+                    action = 'Buy' if quantity_val >= 0 else 'Sell'
                 
                 if symbol and price > 0 and quantity > 0:
                     trade = {

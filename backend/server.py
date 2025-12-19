@@ -183,6 +183,14 @@ def suggest_column_mapping(headers: List[str]) -> Dict[str, str]:
                 mapping['time'] = headers[i]
                 break
     
+    # Fees detection (optional)
+    fees_keywords = ['fees', 'commission', 'charges']
+    for keyword in fees_keywords:
+        for i, h in enumerate(headers_lower):
+            if keyword in h:
+                mapping['fees'] = headers[i]
+                break
+    
     return mapping
 
 def parse_flexible_date(date_str: str, has_time: bool = False) -> Optional[datetime]:

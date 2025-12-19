@@ -481,8 +481,23 @@ async def import_with_mapping(
                 
                 # Extract and clean data
                 symbol = extract_symbol(row.get(symbol_col, ''))
-                price_raw = str(row.get(price_col, '0')).replace(',', '').replace('$', '').strip()
-                price = float(price_raw) if price_raw and price_raw not in ['', '0'] else 0
+                
+                # Parse price (handle "Filled at $X.XX" format)
+                price_raw = str(row.get(price_col, '0'))
+                price = 0
+                if 'Filled at' in price_raw or 'filled at' in price_raw:
+                    # Extract price from "Filled at $X.XX" format
+                    try:
+                        price_str = price_raw.split('at')[1].replace('$', '').replace(',', '').strip().split()[0]
+                        price = float(price_str)
+                    except:
+                        price = 0
+                else:
+                    # Direct price value
+                    try:
+                        price = float(price_raw.replace(',', '').replace('$', '').strip())
+                    except:
+                        price = 0
                 
                 quantity_raw = str(row.get(quantity_col, '0')).replace(',', '').strip()
                 # Handle empty or invalid quantity

@@ -822,18 +822,21 @@ async def get_dashboard_metrics():
 async def get_calendar_data():
     trades = load_matched_trades()
     
-    daily_data = defaultdict(lambda: {'pnl': 0, 'count': 0})
+    daily_data = defaultdict(lambda: {'pnl': 0, 'fees': 0, 'count': 0})
     
     for trade in trades:
         date = trade.get('Trade Date')
         if date:
             daily_data[date]['pnl'] += float(trade.get('PnL', 0))
+            daily_data[date]['fees'] += float(trade.get('Fees', 0))
             daily_data[date]['count'] += 1
     
     result = [
         CalendarDay(
             date=date,
             pnl=round(data['pnl'], 2),
+            fees=round(data['fees'], 2),
+            net_pnl=round(data['pnl'] - data['fees'], 2),
             trade_count=data['count']
         )
         for date, data in daily_data.items()

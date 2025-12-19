@@ -88,6 +88,8 @@ class DashboardMetrics(BaseModel):
 class CalendarDay(BaseModel):
     date: str
     pnl: float
+    fees: float
+    net_pnl: float
     trade_count: int
 
 class TimeAnalysis(BaseModel):

@@ -517,10 +517,13 @@ async def import_with_mapping(
                 # Debug logging
                 logging.info(f'Processed row - Symbol: \'{symbol}\', Price: {price}, Quantity: {quantity}, Action: {action}')
                 
-                # Check if options (multiply by 100)
-                is_option = bool(re.search(r'[PC]\d+$', symbol))
+                # Check if options (must have date + P/C + strike pattern)
+                # Options format: SYMBOL + YYMMDD + P/C + STRIKE (e.g., SPY251218P672)
+                is_option = bool(re.search(r'[A-Z]+\d{6}[PC]\d+', symbol))
                 multiplier = 100 if is_option else 1
                 trade_value = price * quantity * multiplier
+                
+                logging.info(f"Symbol: {symbol}, is_option: {is_option}, multiplier: {multiplier}")
                 
                 if symbol and price > 0 and quantity > 0:
                     trade = {

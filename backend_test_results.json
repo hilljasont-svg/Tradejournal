@@ -1,0 +1,88 @@
+{
+  "timestamp": "2025-12-19T01:35:30.274712",
+  "total_tests": 16,
+  "passed_tests": 15,
+  "success_rate": 0.9375,
+  "test_details": [
+    {
+      "test": "Dashboard Metrics API",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Dashboard Metrics - Field Validation",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Trades API",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Trades API - Response Format",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Trades API - Trade Structure",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Calendar Data API",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Calendar Data - Response Format",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Calendar Data - Day Structure",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Calendar Data - Dec 18 Present",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "CSV Import API",
+      "success": false,
+      "details": "Expected 200, got 400"
+    },
+    {
+      "test": "Data Persistence - Trades File",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Data Persistence - Raw Imports File",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Trades API",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Trades API - Response Format",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Trades API - Trade Structure",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "FIFO Logic - Matching Validation",
+      "success": true,
+      "details": ""
+    }
+  ]
+}

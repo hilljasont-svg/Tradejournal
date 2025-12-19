@@ -137,11 +137,11 @@ export default function Dashboard() {
 
         {/* Quick Stats Bar */}
         {metrics && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <Card className="bg-[#18181B] border-[#27272A] p-6 rounded-sm">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-[#A1A1AA] text-sm mb-1 font-['Inter']">Total P&L</p>
+                  <p className="text-[#A1A1AA] text-sm mb-1 font-['Inter']">Trade P&L</p>
                   <p
                     className={`text-3xl font-bold font-['JetBrains_Mono'] ${
                       metrics.total_pnl >= 0 ? 'text-[#10B981]' : 'text-[#EF4444]'

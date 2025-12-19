@@ -851,8 +851,20 @@ async def get_dashboard_metrics(start_date: str = None, end_date: str = None):
     )
 
 @api_router.get("/calendar-data", response_model=List[CalendarDay])
-async def get_calendar_data():
+async def get_calendar_data(start_date: str = None, end_date: str = None):
     trades = load_matched_trades()
+    
+    # Filter by date range
+    if start_date or end_date:
+        filtered = []
+        for trade in trades:
+            trade_date = trade.get('Trade Date', '')
+            if start_date and trade_date < start_date:
+                continue
+            if end_date and trade_date > end_date:
+                continue
+            filtered.append(trade)
+        trades = filtered
     
     daily_data = defaultdict(lambda: {'pnl': 0, 'fees': 0, 'count': 0})
     

@@ -796,6 +796,8 @@ async def get_dashboard_metrics():
     
     return DashboardMetrics(
         total_pnl=round(total_pnl, 2),
+        total_fees=round(total_fees, 2),
+        net_pnl=round(net_pnl, 2),
         avg_daily_pnl=round(avg_daily_pnl, 2),
         avg_trade_pnl=round(avg_trade_pnl, 2),
         total_trades=total_trades,

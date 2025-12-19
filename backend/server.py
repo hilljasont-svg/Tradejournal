@@ -461,7 +461,7 @@ def save_matched_trades(trades: List[dict]):
     
     fieldnames = ['Trade Date', 'Symbol', 'Side', 'Entry Action', 'Exit Action',
                  'Entry Time', 'Exit Time', 'Entry Price', 'Exit Price', 'Quantity',
-                 'PnL', 'Result', 'Hold Time', 'Entry Hour']
+                 'PnL', 'Fees', 'Result', 'Hold Time', 'Entry Hour']
     
     with open(TRADES_FILE, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

@@ -695,8 +695,20 @@ async def import_with_mapping(
         raise HTTPException(status_code=400, detail=str(e))
 
 @api_router.get("/trades", response_model=List[MatchedTrade])
-async def get_trades():
+async def get_trades(start_date: str = None, end_date: str = None):
     trades = load_matched_trades()
+    
+    # Filter by date range
+    if start_date or end_date:
+        filtered = []
+        for trade in trades:
+            trade_date = trade.get('Trade Date', '')
+            if start_date and trade_date < start_date:
+                continue
+            if end_date and trade_date > end_date:
+                continue
+            filtered.append(trade)
+        trades = filtered
     result = []
     
     for trade in trades:

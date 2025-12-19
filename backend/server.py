@@ -97,8 +97,17 @@ def parse_price_from_status(status: str) -> Optional[float]:
         pass
     return None
 
-def calculate_hold_time(entry_dt: datetime, exit_dt: datetime) -> str:
+def calculate_hold_time(entry_dt, exit_dt) -> str:
     """Calculate hold time in HH:MM:SS format"""
+    # Handle string datetime conversion
+    if isinstance(entry_dt, str):
+        entry_dt = datetime.fromisoformat(entry_dt)
+    if isinstance(exit_dt, str):
+        exit_dt = datetime.fromisoformat(exit_dt)
+    
+    if not isinstance(entry_dt, datetime) or not isinstance(exit_dt, datetime):
+        return "00:00:00"
+    
     diff = exit_dt - entry_dt
     total_seconds = int(diff.total_seconds())
     hours = total_seconds // 3600

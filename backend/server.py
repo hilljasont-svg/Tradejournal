@@ -218,14 +218,24 @@ def extract_symbol(symbol_str: str) -> str:
     # Remove leading/trailing whitespace and special chars
     symbol = symbol_str.strip().lstrip('-').strip()
     
-    # If it's an option symbol like SPY251219P670, return as is
+    # If it's already a clean option symbol like SPY251219P670, return as is
     if re.match(r'^[A-Z]+\d+[PC]\d+$', symbol):
         return symbol
     
-    # Extract from description if needed
-    match = re.search(r'([A-Z]+)\d+[PC]\d+', symbol)
+    # Try to extract option symbol from description
+    # Matches patterns like "SPY Dec 19 2025 670.00 Put" or "-SPY251219P670"
+    match = re.search(r'([A-Z]+\d{6}[PC]\d+)', symbol)
     if match:
-        return match.group(0)
+        return match.group(1)
+    
+    # If still contains description text, try to extract base symbol
+    # e.g., "SPY Dec 19" -> look for the stock part
+    parts = symbol.split()
+    if parts:
+        base = parts[0].strip('-')
+        # Check if it's a valid ticker (2-5 uppercase letters)
+        if re.match(r'^[A-Z]{2,5}$', base):
+            return base
     
     return symbol
 

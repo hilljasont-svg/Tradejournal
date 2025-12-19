@@ -316,12 +316,12 @@ export const ImportDialog = ({ open, onClose, onSuccess }) => {
                   <Label className="text-[#FAFAFA] font-['Inter'] text-sm mb-2 block">
                     Action (Optional)
                   </Label>
-                  <Select value={mapping.action} onValueChange={(val) => setMapping({...mapping, action: val})}>
+                  <Select value={mapping.action || undefined} onValueChange={(val) => setMapping({...mapping, action: val})}>
                     <SelectTrigger className="bg-[#27272A] border-[#3F3F46] text-[#FAFAFA]">
                       <SelectValue placeholder="Select action column (Buy/Sell)" />
                     </SelectTrigger>
                     <SelectContent className="bg-[#27272A] border-[#3F3F46]">
-                      <SelectItem value="" className="text-[#71717A] hover:bg-[#3F3F46]">None</SelectItem>
+                      <SelectItem value="none" className="text-[#71717A] hover:bg-[#3F3F46]">None</SelectItem>
                       {headers.map((h) => (
                         <SelectItem key={h} value={h} className="text-[#FAFAFA] hover:bg-[#3F3F46]">{h}</SelectItem>
                       ))}

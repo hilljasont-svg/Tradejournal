@@ -145,6 +145,7 @@ export const ImportDialog = ({ open, onClose, onSuccess }) => {
       price: '',
       quantity: '',
       time: '',
+      fees: '',
     });
     setDateTimeCombined(false);
     onClose();

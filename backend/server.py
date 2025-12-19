@@ -4,13 +4,14 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from pathlib import Path
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict
 import os
 import logging
 import csv
 import io
 from datetime import datetime, time
 from collections import defaultdict
+import re
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -31,6 +32,20 @@ class TradeImportResponse(BaseModel):
     duplicate_count: int
     matched_trades_count: int
     message: str
+
+class ColumnMapping(BaseModel):
+    date: str
+    symbol: str
+    action: str
+    price: str
+    quantity: str
+    time: Optional[str] = None
+    date_time_combined: bool = False
+
+class CSVPreview(BaseModel):
+    headers: List[str]
+    sample_rows: List[List[str]]
+    suggested_mapping: Optional[Dict[str, str]]
 
 class MatchedTrade(BaseModel):
     trade_date: str
@@ -94,34 +109,145 @@ class CumulativePnL(BaseModel):
     pnl: float
     cumulative_pnl: float
 
-def parse_fidelity_time(time_str: str) -> Optional[datetime]:
-    """Parse Fidelity time format: '3:31:36 PM ET Dec-18-2025'"""
+def suggest_column_mapping(headers: List[str]) -> Dict[str, str]:
+    """Auto-suggest column mapping based on header names"""
+    mapping = {}
+    headers_lower = [h.lower() for h in headers]
+    
+    # Date detection
+    date_keywords = ['date', 'run date', 'trade date', 'order date']
+    for keyword in date_keywords:
+        for i, h in enumerate(headers_lower):
+            if keyword in h:
+                mapping['date'] = headers[i]
+                break
+        if 'date' in mapping:
+            break
+    
+    # Symbol detection
+    symbol_keywords = ['symbol', 'ticker', 'security']
+    for keyword in symbol_keywords:
+        for i, h in enumerate(headers_lower):
+            if keyword in h:
+                mapping['symbol'] = headers[i]
+                break
+        if 'symbol' in mapping:
+            break
+    
+    # Action detection
+    action_keywords = ['action', 'side', 'transaction', 'type']
+    for keyword in action_keywords:
+        for i, h in enumerate(headers_lower):
+            if keyword in h and 'description' not in h:
+                mapping['action'] = headers[i]
+                break
+        if 'action' in mapping:
+            break
+    
+    # Price detection
+    price_keywords = ['price', 'trade price', 'execution price']
+    for keyword in price_keywords:
+        for i, h in enumerate(headers_lower):
+            if keyword in h:
+                mapping['price'] = headers[i]
+                break
+        if 'price' in mapping:
+            break
+    
+    # Quantity detection
+    quantity_keywords = ['quantity', 'qty', 'amount', 'shares']
+    for keyword in quantity_keywords:
+        for i, h in enumerate(headers_lower):
+            if keyword in h and 'exchange' not in h:
+                mapping['quantity'] = headers[i]
+                break
+        if 'quantity' in mapping:
+            break
+    
+    # Time detection (optional)
+    time_keywords = ['time', 'order time', 'execution time']
+    for keyword in time_keywords:
+        for i, h in enumerate(headers_lower):
+            if keyword in h:
+                mapping['time'] = headers[i]
+                break
+    
+    return mapping
+
+def parse_flexible_date(date_str: str, has_time: bool = False) -> Optional[datetime]:
+    """Parse various date formats"""
+    if not date_str:
+        return None
+    
+    formats = [
+        "%b-%d-%Y %I:%M:%S %p",  # Dec-18-2025 3:31:36 PM
+        "%m/%d/%Y %I:%M:%S %p",   # 12/18/2025 3:31:36 PM
+        "%m/%d/%Y",               # 12/18/2025
+        "%Y-%m-%d",               # 2025-12-18
+        "%b %d, %Y",              # Dec 18, 2025
+    ]
+    
+    for fmt in formats:
+        try:
+            return datetime.strptime(date_str.strip(), fmt)
+        except:
+            continue
+    
+    return None
+
+def parse_flexible_time(time_str: str) -> Optional[datetime]:
+    """Parse time with ET timezone notation"""
     try:
-        parts = time_str.split(' ET ')
-        if len(parts) != 2:
-            return None
-        time_part = parts[0]
-        date_part = parts[1]
-        
-        datetime_str = f"{date_part} {time_part}"
-        return datetime.strptime(datetime_str, "%b-%d-%Y %I:%M:%S %p")
+        # Handle "3:31:36 PM ET Dec-18-2025" format
+        if ' ET ' in time_str:
+            parts = time_str.split(' ET ')
+            time_part = parts[0]
+            date_part = parts[1]
+            datetime_str = f"{date_part} {time_part}"
+            return datetime.strptime(datetime_str, "%b-%d-%Y %I:%M:%S %p")
+        else:
+            return parse_flexible_date(time_str, True)
     except:
         return None
 
-def parse_price_from_status(status: str) -> Optional[float]:
-    """Extract price from 'Filled at $2.75' format"""
-    try:
-        if 'Filled at $' in status:
-            price_str = status.split('Filled at $')[1].split(',')[0].strip()
-            return float(price_str)
-    except:
-        pass
-    return None
+def extract_symbol(symbol_str: str) -> str:
+    """Extract clean symbol from various formats"""
+    if not symbol_str:
+        return ""
+    
+    # Remove leading/trailing whitespace and special chars
+    symbol = symbol_str.strip().lstrip('-').strip()
+    
+    # If it's an option symbol like SPY251219P670, return as is
+    if re.match(r'^[A-Z]+\d+[PC]\d+$', symbol):
+        return symbol
+    
+    # Extract from description if needed
+    match = re.search(r'([A-Z]+)\d+[PC]\d+', symbol)
+    if match:
+        return match.group(0)
+    
+    return symbol
+
+def determine_action(action_str: str, quantity: float) -> str:
+    """Determine if it's a buy or sell action"""
+    action_lower = action_str.lower()
+    
+    if 'buy' in action_lower or 'opening' in action_lower:
+        return 'Buy'
+    elif 'sell' in action_lower or 'closing' in action_lower:
+        return 'Sell'
+    elif quantity < 0:
+        return 'Sell'
+    else:
+        return 'Buy'
 
 def calculate_hold_time(entry_dt: datetime, exit_dt: datetime) -> str:
     """Calculate hold time in HH:MM:SS format"""
     diff = exit_dt - entry_dt
     total_seconds = int(diff.total_seconds())
+    if total_seconds < 0:
+        total_seconds = 0
     hours = total_seconds // 3600
     minutes = (total_seconds % 3600) // 60
     seconds = total_seconds % 60
@@ -129,7 +255,6 @@ def calculate_hold_time(entry_dt: datetime, exit_dt: datetime) -> str:
 
 def match_trades(raw_trades: List[dict]) -> List[dict]:
     """Match Buy and Sell trades to create matched trade pairs"""
-    # Group by symbol
     by_symbol = defaultdict(list)
     for trade in raw_trades:
         symbol = trade.get('Symbol', '').strip()
@@ -139,33 +264,30 @@ def match_trades(raw_trades: List[dict]) -> List[dict]:
     matched_trades = []
     
     for symbol, trades in by_symbol.items():
-        # Sort by order time
         trades.sort(key=lambda t: t.get('order_datetime', datetime.min))
         
         buy_stack = []
         sell_stack = []
         
         for trade in trades:
-            action = trade.get('Action', '').lower()
+            action = trade.get('Action', '').upper()
             
-            if 'buy' in action:
+            if 'BUY' in action:
                 buy_stack.append(trade)
-            elif 'sell' in action:
+            elif 'SELL' in action:
                 sell_stack.append(trade)
         
-        # Match FIFO: First buy with first sell
         while buy_stack and sell_stack:
             buy_trade = buy_stack.pop(0)
             sell_trade = sell_stack.pop(0)
             
-            entry_price = buy_trade.get('price')
-            exit_price = sell_trade.get('price')
-            quantity = buy_trade.get('Amount', 0)
+            entry_price = buy_trade.get('price', 0)
+            exit_price = sell_trade.get('price', 0)
+            quantity = abs(buy_trade.get('Amount', 0))
             
             if entry_price and exit_price and quantity:
                 pnl = (exit_price - entry_price) * quantity
                 
-                # Determine result
                 if pnl > 5:
                     result = 'Win'
                 elif pnl < -5:
@@ -182,22 +304,21 @@ def match_trades(raw_trades: List[dict]) -> List[dict]:
                     'Side': 'Long',
                     'Entry Action': 'Buy',
                     'Exit Action': 'Sell',
-                    'Entry Time': entry_dt.strftime('%H:%M:%S') if entry_dt else '',
-                    'Exit Time': exit_dt.strftime('%H:%M:%S') if exit_dt else '',
-                    'Entry Price': entry_price,
-                    'Exit Price': exit_price,
-                    'Quantity': quantity,
+                    'Entry Time': entry_dt.strftime('%H:%M:%S') if entry_dt else '00:00:00',
+                    'Exit Time': exit_dt.strftime('%H:%M:%S') if exit_dt else '00:00:00',
+                    'Entry Price': float(entry_price),
+                    'Exit Price': float(exit_price),
+                    'Quantity': int(quantity),
                     'PnL': round(pnl, 2),
                     'Result': result,
-                    'Hold Time': calculate_hold_time(entry_dt, exit_dt) if entry_dt and exit_dt else '',
-                    'Entry Hour': entry_dt.hour if entry_dt else None
+                    'Hold Time': calculate_hold_time(entry_dt, exit_dt) if entry_dt and exit_dt else '00:00:00',
+                    'Entry Hour': entry_dt.hour if entry_dt else 0
                 }
                 matched_trades.append(matched_trade)
     
     return matched_trades
 
 def load_raw_imports() -> List[dict]:
-    """Load all raw imports from CSV"""
     if not RAW_IMPORTS_FILE.exists():
         return []
     
@@ -206,7 +327,6 @@ def load_raw_imports() -> List[dict]:
         return list(reader)
 
 def save_raw_imports(trades: List[dict]):
-    """Save raw imports to CSV"""
     if not trades:
         return
     
@@ -217,7 +337,6 @@ def save_raw_imports(trades: List[dict]):
         writer.writerows(trades)
 
 def load_matched_trades() -> List[dict]:
-    """Load matched trades from CSV"""
     if not TRADES_FILE.exists():
         return []
     
@@ -226,7 +345,6 @@ def load_matched_trades() -> List[dict]:
         return list(reader)
 
 def save_matched_trades(trades: List[dict]):
-    """Save matched trades to CSV"""
     if not trades:
         return
     
@@ -239,72 +357,133 @@ def save_matched_trades(trades: List[dict]):
         writer.writeheader()
         writer.writerows(trades)
 
-@api_router.post("/import", response_model=TradeImportResponse)
-async def import_trades(file: UploadFile = File(...)):
-    """Import trades from CSV file"""
+@api_router.post("/preview-csv")
+async def preview_csv(file: UploadFile = File(...)):
+    """Preview CSV and suggest column mapping"""
     try:
         contents = await file.read()
-        # Handle BOM and decode
         text = contents.decode('utf-8-sig')
         
-        # Parse CSV
+        csv_reader = csv.DictReader(io.StringIO(text))
+        headers = csv_reader.fieldnames
+        
+        sample_rows = []
+        for i, row in enumerate(csv_reader):
+            if i >= 5:
+                break
+            sample_rows.append([row.get(h, '') for h in headers])
+        
+        suggested_mapping = suggest_column_mapping(headers)
+        
+        return {
+            "headers": headers,
+            "sample_rows": sample_rows,
+            "suggested_mapping": suggested_mapping
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.post("/import-with-mapping", response_model=TradeImportResponse)
+async def import_with_mapping(
+    file: UploadFile = File(...),
+    mapping: str = None
+):
+    """Import trades with custom column mapping"""
+    try:
+        import json
+        column_mapping = json.loads(mapping) if mapping else {}
+        
+        contents = await file.read()
+        text = contents.decode('utf-8-sig')
+        
         csv_reader = csv.DictReader(io.StringIO(text))
         new_trades = []
         
         for row in csv_reader:
-            status = row.get('Status', '')
-            if 'Filled' in status and 'Verified Canceled' not in status:
-                order_datetime = parse_fidelity_time(row.get('Order Time', ''))
-                price = parse_price_from_status(status)
+            try:
+                # Extract mapped columns
+                date_col = column_mapping.get('date')
+                symbol_col = column_mapping.get('symbol')
+                action_col = column_mapping.get('action')
+                price_col = column_mapping.get('price')
+                quantity_col = column_mapping.get('quantity')
+                time_col = column_mapping.get('time')
+                date_time_combined = column_mapping.get('date_time_combined', False)
                 
-                if order_datetime and price:
+                if not all([date_col, symbol_col, price_col, quantity_col]):
+                    continue
+                
+                # Parse date/time
+                if date_time_combined and time_col:
+                    order_datetime = parse_flexible_time(row.get(time_col, ''))
+                elif time_col:
+                    date_str = row.get(date_col, '')
+                    time_str = row.get(time_col, '')
+                    combined = f"{date_str} {time_str}"
+                    order_datetime = parse_flexible_date(combined, True)
+                else:
+                    order_datetime = parse_flexible_date(row.get(date_col, ''))
+                
+                if not order_datetime:
+                    order_datetime = datetime.now()
+                
+                # Extract and clean data
+                symbol = extract_symbol(row.get(symbol_col, ''))
+                price = float(row.get(price_col, 0))
+                quantity_raw = row.get(quantity_col, '0')
+                quantity = abs(float(str(quantity_raw).replace(',', '')))
+                
+                # Determine action
+                if action_col:
+                    action = determine_action(row.get(action_col, ''), float(quantity_raw) if quantity_raw else 0)
+                else:
+                    action = 'Buy' if float(quantity_raw) > 0 else 'Sell'
+                
+                if symbol and price > 0 and quantity > 0:
                     trade = {
-                        'Symbol': row.get('Symbol', ''),
-                        'Action': row.get('Action', ''),
-                        'Status': status,
-                        'Amount': int(row.get('Amount', 0)),
-                        'Order Time': row.get('Order Time', ''),
+                        'Symbol': symbol,
+                        'Action': action,
+                        'Status': 'Filled',
+                        'Amount': int(quantity),
+                        'Order Time': order_datetime.strftime('%I:%M:%S %p ET %b-%d-%Y'),
                         'order_datetime': order_datetime,
                         'price': price
                     }
                     new_trades.append(trade)
+            except Exception as e:
+                logging.error(f"Error processing row: {e}")
+                continue
         
-        # Load existing raw imports
         existing_trades = load_raw_imports()
         
-        # Detect duplicates
         existing_keys = set()
         for t in existing_trades:
-            key = f"{t.get('Symbol')}_{t.get('Action')}_{t.get('Order Time')}_{t.get('Amount')}"
+            key = f"{t.get('Symbol')}_{t.get('Action')}_{t.get('Amount')}_{t.get('price')}"
             existing_keys.add(key)
         
         unique_new_trades = []
         duplicate_count = 0
         
         for trade in new_trades:
-            key = f"{trade.get('Symbol')}_{trade.get('Action')}_{trade.get('Order Time')}_{trade.get('Amount')}"
+            key = f"{trade.get('Symbol')}_{trade.get('Action')}_{trade.get('Amount')}_{trade.get('price')}"
             if key not in existing_keys:
                 unique_new_trades.append(trade)
                 existing_keys.add(key)
             else:
                 duplicate_count += 1
         
-        # Add unique trades to existing
         all_trades = existing_trades + unique_new_trades
         
-        # Prepare for CSV storage (remove datetime objects)
         for trade in all_trades:
             if 'order_datetime' in trade and not isinstance(trade['order_datetime'], str):
                 trade['order_datetime'] = trade['order_datetime'].isoformat()
         
         save_raw_imports(all_trades)
         
-        # Re-parse for matching
         for trade in all_trades:
             if isinstance(trade.get('order_datetime'), str):
                 trade['order_datetime'] = datetime.fromisoformat(trade['order_datetime'])
         
-        # Match all trades
         matched = match_trades(all_trades)
         save_matched_trades(matched)
         
@@ -317,11 +496,11 @@ async def import_trades(file: UploadFile = File(...)):
         )
     
     except Exception as e:
+        logging.error(f"Import error: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @api_router.get("/trades", response_model=List[MatchedTrade])
 async def get_trades():
-    """Get all matched trades"""
     trades = load_matched_trades()
     result = []
     
@@ -346,7 +525,6 @@ async def get_trades():
 
 @api_router.get("/dashboard-metrics", response_model=DashboardMetrics)
 async def get_dashboard_metrics():
-    """Calculate and return dashboard metrics"""
     trades = load_matched_trades()
     
     if not trades:
@@ -362,7 +540,6 @@ async def get_dashboard_metrics():
             avg_hold_time_scratch="00:00:00"
         )
     
-    # Calculate metrics
     total_pnl = sum(float(t.get('PnL', 0)) for t in trades)
     total_trades = len(trades)
     
@@ -385,7 +562,6 @@ async def get_dashboard_metrics():
     largest_gain = max(pnl_values) if pnl_values else 0
     largest_loss = min(pnl_values) if pnl_values else 0
     
-    # Calculate consecutive wins/losses
     max_consecutive_wins = 0
     max_consecutive_losses = 0
     current_wins = 0
@@ -405,7 +581,6 @@ async def get_dashboard_metrics():
             current_wins = 0
             current_losses = 0
     
-    # Calculate average hold times
     def avg_hold_time(trade_list):
         if not trade_list:
             return "00:00:00"
@@ -415,7 +590,10 @@ async def get_dashboard_metrics():
             hold_time = t.get('Hold Time', '00:00:00')
             parts = hold_time.split(':')
             if len(parts) == 3:
-                total_seconds += int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+                try:
+                    total_seconds += int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+                except:
+                    pass
         
         avg_seconds = total_seconds // len(trade_list) if trade_list else 0
         hours = avg_seconds // 3600
@@ -423,7 +601,6 @@ async def get_dashboard_metrics():
         seconds = avg_seconds % 60
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
     
-    # Calculate unique trading days
     unique_days = set(t.get('Trade Date') for t in trades if t.get('Trade Date'))
     avg_daily_pnl = total_pnl / len(unique_days) if unique_days else 0
     avg_trade_pnl = total_pnl / total_trades if total_trades > 0 else 0
@@ -452,10 +629,8 @@ async def get_dashboard_metrics():
 
 @api_router.get("/calendar-data", response_model=List[CalendarDay])
 async def get_calendar_data():
-    """Get daily P&L summary for calendar view"""
     trades = load_matched_trades()
     
-    # Group by date
     daily_data = defaultdict(lambda: {'pnl': 0, 'count': 0})
     
     for trade in trades:
@@ -477,7 +652,6 @@ async def get_calendar_data():
 
 @api_router.get("/time-analysis", response_model=List[TimeAnalysis])
 async def get_time_analysis():
-    """Analyze trading performance by hour of day"""
     trades = load_matched_trades()
     
     hourly_data = defaultdict(lambda: {'trades': [], 'wins': 0, 'losses': 0})
@@ -519,7 +693,6 @@ async def get_time_analysis():
 
 @api_router.get("/symbol-performance", response_model=List[SymbolPerformance])
 async def get_symbol_performance():
-    """Analyze performance by symbol"""
     trades = load_matched_trades()
     
     symbol_data = defaultdict(lambda: {'pnls': [], 'wins': 0})
@@ -547,17 +720,14 @@ async def get_symbol_performance():
             win_rate=round(win_rate, 4)
         ))
     
-    # Sort by total P&L descending
     result.sort(key=lambda x: x.total_pnl, reverse=True)
     
     return result
 
 @api_router.get("/cumulative-pnl", response_model=List[CumulativePnL])
 async def get_cumulative_pnl():
-    """Get cumulative P&L over time"""
     trades = load_matched_trades()
     
-    # Sort by date and time
     sorted_trades = sorted(trades, key=lambda t: f"{t.get('Trade Date', '')} {t.get('Exit Time', '')}")
     
     cumulative = 0

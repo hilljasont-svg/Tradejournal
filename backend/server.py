@@ -407,7 +407,7 @@ async def preview_csv(file: UploadFile = File(...)):
 @api_router.post("/import-with-mapping", response_model=TradeImportResponse)
 async def import_with_mapping(
     file: UploadFile = File(...),
-    mapping: str = None
+    mapping: str = Form(None)
 ):
     """Import trades with custom column mapping"""
     try:

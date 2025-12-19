@@ -289,7 +289,14 @@ async def import_trades(file: UploadFile = File(...)):
         # Re-parse for matching
         for trade in all_trades:
             if isinstance(trade.get('order_datetime'), str):
-                trade['order_datetime'] = datetime.fromisoformat(trade['order_datetime'])
+                try:
+                    trade['order_datetime'] = datetime.fromisoformat(trade['order_datetime'])
+                except:
+                    # If parsing fails, try to parse as original format
+                    try:
+                        trade['order_datetime'] = parse_fidelity_time(trade.get('Order Time', ''))
+                    except:
+                        trade['order_datetime'] = None
         
         # Match all trades
         matched = match_trades(all_trades)

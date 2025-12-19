@@ -1,0 +1,129 @@
+{
+  "identity": {
+    "name": "E1",
+    "role": "Creative Designer",
+    "mission": "Create a top 1% trading journal that feels like a professional Bloomberg terminal but with modern SaaS usability.",
+    "principles": [
+      "Fusion over Imitation: Mix Bloomberg density with Linear-style aesthetics.",
+      "Emotion First: The user should feel 'In Control' and 'Professional'.",
+      "Content is King: Data is the hero. Legibility of numbers is paramount.",
+      "Zoom In: Focus on the P&L metrics.",
+      "Negative Space: Use it to separate data groups, but keep density high for the 'Control Room' feel.",
+      "Contrast: High contrast for data (Green/Red) against deep dark backgrounds."
+    ]
+  },
+  "design_system": {
+    "theme": "dark",
+    "typography": {
+      "headings": {
+        "font_family": "JetBrains Mono, monospace",
+        "weight": "700",
+        "tracking": "-0.02em",
+        "usage": "Page titles, Section headers, Key Metrics"
+      },
+      "body": {
+        "font_family": "Inter, sans-serif",
+        "weight": "400",
+        "usage": "General text, labels, descriptions"
+      },
+      "numbers": {
+        "font_family": "JetBrains Mono, monospace",
+        "weight": "500",
+        "usage": "All financial data, dates, prices, P&L"
+      }
+    },
+    "colors": {
+      "palette": {
+        "background": "#09090B",
+        "surface": "#18181B",
+        "surface_highlight": "#27272A",
+        "border": "#27272A",
+        "primary": "#FAFAFA",
+        "primary_foreground": "#18181B",
+        "text_primary": "#FAFAFA",
+        "text_secondary": "#A1A1AA",
+        "text_muted": "#71717A",
+        "accent_green": "#10B981",
+        "accent_red": "#EF4444",
+        "accent_green_dim": "rgba(16, 185, 129, 0.1)",
+        "accent_red_dim": "rgba(239, 68, 68, 0.1)"
+      },
+      "usage_rules": [
+        "Backgrounds must be deep void black (#09090B).",
+        "Cards should use a subtle border (#27272A) instead of heavy backgrounds.",
+        "Green (#10B981) is ONLY for Profit/Win.",
+        "Red (#EF4444) is ONLY for Loss/Risk.",
+        "Do not use gradients for backgrounds. Use solid colors for data clarity."
+      ]
+    },
+    "spacing": {
+      "scale": "tailwind",
+      "philosophy": "Dense but breathable. Use p-4 for cards, but gap-2 for data grids.",
+      "grid_gap": "gap-4"
+    },
+    "layout": {
+      "dashboard_grid": "Mode B: The Control Room. Grid cols 4. Dense. Every pixel utilized.",
+      "container_padding": "p-6 md:p-8",
+      "border_radius": "rounded-none or rounded-sm (Sharp edges for professional feel)"
+    },
+    "visual_enhancers": {
+      "borders": "1px solid #27272A",
+      "shadows": "none (Flat design preferred for data density)",
+      "glassmorphism": "Use only for sticky headers (backdrop-blur-md bg-background/80)",
+      "textures": "Subtle noise texture on the main background to reduce banding."
+    }
+  },
+  "components": {
+    "buttons": {
+      "style": "Sharp edges or slightly rounded (rounded-sm).",
+      "primary": "bg-primary text-primary-foreground hover:bg-primary/90",
+      "secondary": "border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+    },
+    "cards": {
+      "style": "bg-card text-card-foreground border border-border shadow-none rounded-sm",
+      "usage": "Container for charts, metrics, and tables."
+    },
+    "calendar": {
+      "style": "Full width. Cells must be square.",
+      "logic": "Green background (opacity 20%) for profit days. Red background (opacity 20%) for loss days. Text color must be full opacity Green/Red."
+    },
+    "tables": {
+      "style": "Compact density. Monospace font for all cell data. Right-align all numeric columns.",
+      "header": "text-xs uppercase tracking-wider text-muted-foreground"
+    }
+  },
+  "image_urls": {
+    "backgrounds": [
+      {
+        "url": "https://images.unsplash.com/photo-1647067517631-aa36cda58a17?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGRpZ2l0YWwlMjBmaW5hbmNlJTIwZGF0YSUyMGRhcmslMjBiYWNrZ3JvdW5kfGVufDB8fHx8MTc2NjEwNzU4OHww&ixlib=rb-4.1.0&q=85",
+        "description": "Abstract digital finance data dark background - Use for Import Page or Empty States",
+        "category": "texture"
+      }
+    ],
+    "placeholders": []
+  },
+  "instructions_to_main_agent": [
+    "1. INSTALL DEPENDENCIES: `npm install recharts lucide-react date-fns clsx tailwind-merge`",
+    "2. FONT SETUP: Add 'JetBrains Mono' from Google Fonts to index.css.",
+    "3. THEME SETUP: Force Dark Mode by default in tailwind.config.js or index.css.",
+    "4. LAYOUT: Build the 'Dashboard' using the 'Control Room' grid (grid-cols-4).",
+    "5. CALENDAR: Create a custom Calendar view that maps the 'trades' data to days. Do not use the default Shadcn calendar for the main view (it's too small). Build a responsive grid calendar.",
+    "6. CHARTS: Use Recharts for the P&L curve and Win/Loss bar charts.",
+    "7. DATA: Ensure all currency values are formatted with `Intl.NumberFormat`.",
+    "8. CSV IMPORT: Use `papaparse` (if available) or standard string splitting for CSV parsing. Handle the 'duplicate detection' logic in the frontend (check if trade ID or date+symbol exists).",
+    "9. MATCHING LOGIC: Implement the 'Auto-match Buy/Sell' logic. Group trades by Symbol, then sort by Date. Match a Buy with the next Sell (FIFO or LIFO based on user pref, default to FIFO).",
+    "10. TESTING: Add `data-testid` to all inputs, buttons, and key metric displays."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts. Use the 'Control Room' grid.",
+    "Create depth through z-index and subtle borders, not heavy shadows.",
+    "Every interaction needs micro-animations (hover states).",
+    "Use 2-3x more spacing than feels comfortable inside containers, but keep the grid gaps tight (gap-4).",
+    "NEVER use AI assistant Emoji characters.",
+    "Prioritize using pre-existing components from src/components/ui.",
+    "Components MUST use named exports.",
+    "Pages MUST use default exports.",
+    "Use `sonner` for toasts."
+  ]
+}

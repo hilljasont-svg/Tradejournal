@@ -109,8 +109,10 @@ export const CalendarView = ({ calendarData }) => {
 
             const hasTrades = data && data.trade_count > 0;
             const pnl = data ? data.pnl : 0;
-            const isProfit = pnl > 0;
-            const isLoss = pnl < 0;
+            const fees = data ? data.fees : 0;
+            const netPnl = data ? data.net_pnl : 0;
+            const isProfit = netPnl > 0;
+            const isLoss = netPnl < 0;
 
             return (
               <div
@@ -131,19 +133,27 @@ export const CalendarView = ({ calendarData }) => {
                 data-testid={`calendar-day-${day}`}
               >
                 <div className="flex flex-col h-full">
-                  <div className="text-xs font-['JetBrains_Mono'] text-[#A1A1AA] mb-1">
+                  <div className="text-sm font-['JetBrains_Mono'] text-[#A1A1AA] mb-1">
                     {day}
                   </div>
                   {hasTrades && (
                     <div className="flex-1 flex flex-col justify-center">
                       <div
-                        className={`text-xs font-['JetBrains_Mono'] font-bold ${
-                          isProfit ? 'text-[#10B981]' : isLoss ? 'text-[#EF4444]' : 'text-[#A1A1AA]'
+                        className={`text-sm font-['JetBrains_Mono'] font-bold ${
+                          pnl >= 0 ? 'text-[#10B981]' : 'text-[#EF4444]'
                         }`}
                       >
                         {formatCurrency(pnl)}
                       </div>
-                      <div className="text-[10px] text-[#71717A] font-['Inter'] mt-1">
+                      <div className="text-xs text-[#EF4444] font-['JetBrains_Mono'] mt-0.5">
+                        -{formatCurrency(fees)}
+                      </div>
+                      <div className={`text-sm font-['JetBrains_Mono'] font-bold mt-0.5 ${
+                        isProfit ? 'text-[#10B981]' : isLoss ? 'text-[#EF4444]' : 'text-[#A1A1AA]'
+                      }`}>
+                        {formatCurrency(netPnl)}
+                      </div>
+                      <div className="text-xs text-[#71717A] font-['Inter'] mt-1">
                         {data.trade_count} {data.trade_count === 1 ? 'trade' : 'trades'}
                       </div>
                     </div>

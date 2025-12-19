@@ -472,6 +472,9 @@ async def import_with_mapping(
                 else:
                     action = 'Buy' if quantity_val >= 0 else 'Sell'
                 
+                # Debug logging
+                logging.info(f"Processed row - Symbol: '{symbol}', Price: {price}, Quantity: {quantity}, Action: {action}")
+                
                 if symbol and price > 0 and quantity > 0:
                     trade = {
                         'Symbol': symbol,
@@ -483,6 +486,9 @@ async def import_with_mapping(
                         'price': price
                     }
                     new_trades.append(trade)
+                    logging.info(f"Trade added: {symbol} @ {price} x {quantity}")
+                else:
+                    logging.warning(f"Trade rejected - Symbol: '{symbol}' (valid:{bool(symbol)}), Price: {price} (>0:{price > 0}), Qty: {quantity} (>0:{quantity > 0})")
             except Exception as e:
                 logging.error(f"Error processing row: {e}")
                 continue

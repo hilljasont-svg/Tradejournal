@@ -410,6 +410,10 @@ async def import_with_mapping(
         contents = await file.read()
         text = contents.decode('utf-8-sig')
         
+        # Remove empty lines
+        lines = [line for line in text.split('\n') if line.strip()]
+        text = '\n'.join(lines)
+        
         csv_reader = csv.DictReader(io.StringIO(text))
         new_trades = []
         

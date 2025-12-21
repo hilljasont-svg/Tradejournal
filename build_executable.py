@@ -71,12 +71,16 @@ def main():
     
     # Step 2: Install backend dependencies
     step(2, "Installing Backend Dependencies")
-    if not run_command("pip install -r requirements.txt", cwd=BACKEND_DIR):
+    
+    # Use 'python -m pip' for better Windows compatibility
+    pip_cmd = f'"{sys.executable}" -m pip'
+    
+    if not run_command(f"{pip_cmd} install -r requirements.txt", cwd=BACKEND_DIR):
         print("ERROR: Failed to install backend dependencies")
         return False
     
     # Install PyInstaller
-    if not run_command("pip install pyinstaller"):
+    if not run_command(f"{pip_cmd} install pyinstaller"):
         print("ERROR: Failed to install PyInstaller")
         return False
     
